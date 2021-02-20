@@ -4,6 +4,8 @@ PYTHON: 3.x
 
 
 This script is intended for the conversion of alhConfig files to phoebus alarm server xml configuration files.
+
+See configuration file description for alh here: https://epics.anl.gov/EpicsDocumentation/ExtensionsManuals/AlarmHandler/alhUserGuide-1.2.35/ALHUserGuide.html#pgfId_689941
 """
 import xml.etree.ElementTree as ET
 import os
