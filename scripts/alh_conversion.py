@@ -3,8 +3,7 @@ AUTHOR: JACQUELINE GARRAHAN
 PYTHON: 3.x
 
 
-This script is intended for the processing
-
+This script is intended for the conversion of alhConfig files to phoebus alarm server xml configuration files.
 """
 import xml.etree.ElementTree as ET
 import os
@@ -130,6 +129,7 @@ class ALHFileParser:
 
         # for tracking items
         self.items = {}
+        self.inclusions = {}
 
     def parse_file(self):
 
@@ -138,11 +138,11 @@ class ALHFileParser:
             
             next_line = next(self._line_iterator, None)
 
-            while next_item:
+            while next_line:
 
                 split_line = next_line.split()
 
-                if len(split) > 0:
+                if len(split_line) > 0:
 
                     # process group entry
                     if split_line[0] == "GROUP":
@@ -238,13 +238,13 @@ class ALHFileParser:
         channel_name = split_line[2]
 
         # parent is stored as the second element
-        parent = split[1]
+        parent = split_line[1]
 
         # if we currently have a defined parent group and this is different than the parent given
         # adjust path based on parent group and parent
         if self._current_parent_group and self._current_parent_group != parent:
-            parent_path = f"{self._current_node}/{parent_group}/{parent}"
-            node_path = f"{self._current_node}/{parent_group}/{parent}/{channel_name}"
+            parent_path = f"{self._current_node}/{self._current_parent_group}/{parent}"
+            node_path = f"{self._current_node}/{self._current_parent_group}/{parent}/{channel_name}"
 
         # otherwise, just use parent
         else:
@@ -262,7 +262,7 @@ class ALHFileParser:
 
         # an optional mask is sometimes added as the fourth element
         if len(split_line) == 4:
-            self.items[node_path].mask = split[3]
+            self.items[node_path].mask = split_line[3]
 
         # update current tracked item
         self._current_target = node_path
@@ -274,8 +274,8 @@ class ALHFileParser:
         # store commands on item as list of commands
         self.items[self._current_target].commands += commands
 
-    def _process_sevrpv(self, slit_line):
-        self.items[self._current_target].sevr_pv = SevrPV(split[1])
+    def _process_sevrpv(self, split_line):
+        self.items[self._current_target].sevr_pv = SevrPV(split_line[1])
 
     def _process_forcepv(self, split_line):
         # force mask is stored as the third entry
@@ -285,11 +285,11 @@ class ALHFileParser:
         reset_value = None
 
         # force value is stored as the fourth entry       
-        if len(split) >= 4:
+        if len(split_line) >= 4:
             force_value = split_line[3]
 
         # reset value is stored as the fifth entry
-        if len(split) == 5:
+        if len(split_line) == 5:
             reset_value = split_line[4]
 
         # create a force pv for the item
@@ -308,7 +308,7 @@ class ALHFileParser:
 
                     # get representative calculation
                     if next_split[0] == "FORCEPV_CALC":
-                        self.items[self._current_target].main_calc = split[1]
+                        self.items[self._current_target].main_calc = split_line[1]
 
                     # Force pvs use letter standins for complicated calcs, eg. FORCEPV_CALC_A
                     # Track these values
@@ -347,15 +347,24 @@ class ALHFileParser:
             self.items[self._current_target].guidance_url = urlname
 
     def _process_alias(self, split_line):
-        self.items[self._current_target].alias = split[1]
+        self.items[self._current_target].alias = split_line[1]
 
     def _process_inclusion(self, split_line):
         parent = split_line[1]
 
-        #HACK FIX
-        include_filename = split[2]
+        #HACK 
+        #TODO: Fix filepath handling
+        include_filename = split_line[2]
         if include_filename[:2] == "./":
             include_filename = include_filename.replace("./", "")
+
+        # mark an inclusion with unique placeholder
+        item_key = self._current_node + f"/INCLUDE{self._inclusion_count}"
+        self.items[item_key] = InclusionMarker(include_filename)
+        self._inclusion_count += 1
+
+        # track the inclusion for processing
+        self.inclusions[item_key] = include_filename
 
     def _process_ackpv(self, split_line):
         """
@@ -363,19 +372,21 @@ class ALHFileParser:
         """
         ack_pv_name = split_line[1]
         ack_value = split_line[2]
-        items[target] = AckPV(ack_pv_name, ack_value)
 
-# FIX
+        #WRONG, CORRECT THE TARGET
+        items[self._current_target] = AckPV(ack_pv_name, ack_value)
+
+    # FIX
     def _process_heartbeatpv(self, split_line):
-        heartbeat_pv_name = split[1]
+        heartbeat_pv_name = split_line[1]
         
         heartbeat_val = None
         seconds = None
-        if len(split) >= 3:
-            heartbeat_val = split[2]
+        if len(split_line) >= 3:
+            heartbeat_val = split_line[2]
 
-        if len(split) == 4:
-            seconds = split[3]
+        if len(split_line) == 4:
+            seconds = split_line[3]
         
         items[target] = HeartbeatPV(heartbeat_pv_name, seconds=seconds, value=heartbeat_val)
 
@@ -462,6 +473,9 @@ def convert_alh_to_phoebus(input_filename, output_filename):
     items, top_level_node = parse_tree(input_filename)
     tree = build_tree(items, top_level_node)
     build_config_file(tree, config_name, output_filename)
+
+    # while remaining inclusions
+    # process next file
 
     return True
 
