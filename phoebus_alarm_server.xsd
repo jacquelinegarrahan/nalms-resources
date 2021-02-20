@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xi="http://www.w3.org/2001/XInclude" elementFormDefault="qualified">
+<xs:import namespace="http://www.w3.org/2001/XInclude" schemaLocation="http://www.w3.org/2001/xinclude.xsd"/>
     <xs:element name="config">
         <xs:complexType>
-            <xs:sequence>
-                <xs:element maxOccurs="1" ref="component" />
-            </xs:sequence>
+            <xs:choice>
+                <xs:element maxOccurs="unbounded" ref="component" />
+                <xs:element minOccurs="0" maxOccurs="unbounded" ref="xi:include"/>
+            </xs:choice>
             <xs:attribute name="name" use="required" type="xs:NCName" />
         </xs:complexType>
     </xs:element>
@@ -20,6 +22,7 @@
                 <xs:choice minOccurs="1" maxOccurs="unbounded">
                     <xs:element ref="component" />
                     <xs:element ref="pv" />
+                    <xs:element ref="xi:include"/>
                 </xs:choice>
             </xs:choice>
             <xs:attribute name="name" use="required" type="xs:NCName" />
