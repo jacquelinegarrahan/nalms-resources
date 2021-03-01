@@ -14,34 +14,39 @@ import fileinput
 from treelib import Node, Tree
 
 
-# TODO: ADD HANDLING OF SEVRCOMMAND, STATCOMMAND, ALARMCOUNTERFILTER, BEEPSEVERITY, BEEPSEVR
+# TODO: ADD HANDLING OF SEVRCOMMAND, STATCOMMAND, BEEPSEVERITY, BEEPSEVR
 # TODO: Fix path handling for include files
+
 
 class HeartbeatPV:
     def __init__(self, name, value=None, seconds=None):
         self.name = name
+
 
 class AckPV:
     def __init__(self, name, ack_value):
         self.name = name
         self.ack_value = ack_value
 
+
 class SevrPV:
     def __init__(self, name):
         self.name = name
+
 
 class ForcePV:
     def __init__(self, force_mask, force_value, reset_value):
         self.force_mask = force_mask
         self.force_value = force_value
         self.reset_value = reset_value
-        self.name = None 
+        self.name = None
         self.is_calc = False
         self.calc_expressions = []
         self.base_calc = ""
 
     def add_calc(self, expression):
         self.calc_expressions.append(expression)
+
 
 class AlarmNode:
     def __init__(self, group_name, filename=None):
@@ -68,6 +73,7 @@ class AlarmNode:
 
 class AlarmLeaf:
     node_children = None
+
     def __init__(self, channel_name, filename=None):
         self.name = channel_name
         self.mask = None
@@ -84,16 +90,15 @@ class AlarmLeaf:
         self.filename = ""
 
 
-class InclusionMarker():
+class InclusionMarker:
     node_children = None
+
     def __init__(self, name, filename):
         self.filename = filename
         self.name = name
 
 
-
 class ALHFileParser:
-
     def __init__(self, filepath, config_name):
         self.filepath = filepath
         self.directory = "/".join(filepath.split("/")[:-1])
@@ -120,12 +125,10 @@ class ALHFileParser:
         self._current_path = config_name
         self._parent_path = None
 
-
-
     def parse_file(self):
 
         self._line_iterator = fileinput.input(self.filepath)
-        
+
         next_line = next(self._line_iterator, None)
 
         while next_line:
@@ -165,7 +168,7 @@ class ALHFileParser:
                 # process ackpv entry
                 elif split_line[0] == "$ACKPV":
                     self._process_ackpv(split_line)
-                
+
                 # skip comments
                 elif split_line[0][0] == "#":
                     pass
@@ -202,7 +205,7 @@ class ALHFileParser:
         if parent:
             parent_path = f"{self._current_node}/{parent}"
             node_path = f"{self._current_node}/{parent}/{group_name}"
-            
+
         # if no parent is specified, top level or downstream inclusion
         else:
             print(group_name)
@@ -256,7 +259,6 @@ class ALHFileParser:
         # update current tracked item
         self._current_target = node_path
 
-
     def _process_command(self, split_line):
         command = " ".join(split_line[1:])
         # if multiple commands, break apart
@@ -264,10 +266,8 @@ class ALHFileParser:
         # store commands on item as list of commands
         self.items[self._current_target].commands += commands
 
-
     def _process_sevrpv(self, split_line):
         self.items[self._current_target].sevr_pv = SevrPV(split_line[1])
-
 
     def _process_forcepv(self, split_line):
         # force mask is stored as the third entry
@@ -276,7 +276,7 @@ class ALHFileParser:
         force_value = None
         reset_value = None
 
-        # force value is stored as the fourth entry       
+        # force value is stored as the fourth entry
         if len(split_line) >= 4:
             force_value = split_line[3]
 
@@ -285,7 +285,9 @@ class ALHFileParser:
             reset_value = split_line[4]
 
         # create a force pv for the item
-        self.items[self._current_target].force_pv = ForcePV(force_mask, force_value, reset_value)
+        self.items[self._current_target].force_pv = ForcePV(
+            force_mask, force_value, reset_value
+        )
 
         # if this is a calc type force pv, mark as calc type
         if split_line[1] == "CALC":
@@ -306,12 +308,14 @@ class ALHFileParser:
                     # Track these values
                     elif "FORCEPV_CALC_" in next_split[0]:
                         identifier = next_split[0][-1]
-                        self.items[self._current_target].calcs[identifier] = next_split[1]
+                        self.items[self._current_target].calcs[identifier] = next_split[
+                            1
+                        ]
 
                     # otherwise have reached end
                     else:
                         reached_end = True
-        
+
         # if not calc, name of the pv is the second element
         # update forcepv with the name of the forcepv
         else:
@@ -331,26 +335,28 @@ class ALHFileParser:
                     if next_split[0] == "$END":
                         reached_end = True
                     else:
-                        self.items[self._current_target].guidance.append(next_line.replace("\n", ",").strip())
+                        self.items[self._current_target].guidance.append(
+                            next_line.replace("\n", ",").strip()
+                        )
 
         # if it is a single line guidance, will be a url reference
         else:
             urlname = split_line[1]
             self.items[self._current_target].guidance_url = urlname
 
-
     def _process_alias(self, split_line):
         self.items[self._current_target].alias = split_line[1]
-
 
     def _process_inclusion(self, split_line):
         parent = split_line[1]
 
-        #HACK 
-        #TODO: Fix filepath handling
+        # HACK
+        # TODO: Fix filepath handling
         include_filename = split_line[2]
         if include_filename[:2] == "./":
-            include_filename = include_filename.replace("./", "/Users/jgarra/sandbox/nalms-resources/examples/alh_files/")
+            include_filename = include_filename.replace(
+                "./", "/Users/jgarra/sandbox/nalms-resources/examples/alh_files/"
+            )
 
         # mark an inclusion with unique placeholder
         item_key = self._current_node + f"/INCLUDE_{self._inclusion_count}"
@@ -361,7 +367,6 @@ class ALHFileParser:
         # track the inclusion for processing
         self.inclusions[item_key] = include_filename
 
-
     def _process_ackpv(self, split_line):
         """
         NOTE: This is currently unused in systems at SLAC
@@ -369,13 +374,13 @@ class ALHFileParser:
         ack_pv_name = split_line[1]
         ack_value = split_line[2]
 
-        #WRONG, CORRECT THE TARGET
+        # WRONG, CORRECT THE TARGET
         items[self._current_target] = AckPV(ack_pv_name, ack_value)
 
     # FIX
     def _process_heartbeatpv(self, split_line):
         heartbeat_pv_name = split_line[1]
-        
+
         heartbeat_val = None
         seconds = None
         if len(split_line) >= 3:
@@ -383,13 +388,14 @@ class ALHFileParser:
 
         if len(split_line) == 4:
             seconds = split_line[3]
-        
-        items[target] = HeartbeatPV(heartbeat_pv_name, seconds=seconds, value=heartbeat_val)
-    
+
+        items[target] = HeartbeatPV(
+            heartbeat_pv_name, seconds=seconds, value=heartbeat_val
+        )
+
     def _process_alarm_count(self, split_line):
         items[self._current_target].count = split_line[1]
         items[self._current_target].delay = split_line[2]
-
 
 
 class XMLBuilder:
@@ -399,7 +405,6 @@ class XMLBuilder:
         self.settings_artifacts = []
         self._tree = None
 
-
     def build_tree(self, items, top_level_node):
         self._tree = Tree()
 
@@ -407,7 +412,9 @@ class XMLBuilder:
         self._config_name = top_level_node
 
         # create root node
-        self._tree.create_node(top_level_node, top_level_node, data=items[top_level_node])
+        self._tree.create_node(
+            top_level_node, top_level_node, data=items[top_level_node]
+        )
 
         processed = []
 
@@ -419,24 +426,24 @@ class XMLBuilder:
 
             if children:
                 for child in children:
-                    self._tree.create_node(items[child].name, child, parent=node, data=items[child])
+                    self._tree.create_node(
+                        items[child].name, child, parent=node, data=items[child]
+                    )
 
                 # add children to process
                 to_process += children
-        
-        processed.append(node)
 
+        processed.append(node)
 
     def save_configuration(self, output_filename):
         root_node = self._tree.get_node(self._config_name)
 
         self._handle_children(root_node)
 
-        with open (output_filename, "wb") as f : 
-            file_str = ET.tostring(self._configuration, encoding='utf8') 
+        with open(output_filename, "wb") as f:
+            file_str = ET.tostring(self._configuration, encoding="utf8")
             f.write(file_str)
 
-    
     def _handle_children(self, node, parent_group=None):
         children = self._tree.children(node.identifier)
 
@@ -455,18 +462,20 @@ class XMLBuilder:
                     print("PROCESSING INCLUSION")
                     self._add_inclusion(node.tag, child.data.filename)
 
-
-
-    def _add_group(self, group, data, parent_group = None):
+    def _add_group(self, group, data, parent_group=None):
         group_name = group
         if data.alias:
             group_name = data.alias
 
         if group not in self.groups:
             if not parent_group:
-                self.groups[group] = ET.SubElement(self._configuration, 'component', name=group_name)
+                self.groups[group] = ET.SubElement(
+                    self._configuration, "component", name=group_name
+                )
             else:
-                self.groups[group] = ET.SubElement(self.groups[parent_group], 'component', name=group_name)
+                self.groups[group] = ET.SubElement(
+                    self.groups[parent_group], "component", name=group_name
+                )
 
         # add guidance
         if data.guidance:
@@ -486,7 +495,6 @@ class XMLBuilder:
 
         # TODO: sevr command and stat command automated actions
 
-
     def _add_pv(self, pvname, group, data):
         if pvname in self.added_pvs:
             pass
@@ -495,16 +503,15 @@ class XMLBuilder:
             self.added_pvs.append(pvname)
             pv = ET.SubElement(self.groups[group], "pv", name=pvname)
             enabled = ET.SubElement(pv, "enabled")
-            enabled.text = 'true'
+            enabled.text = "true"
 
             # disable latching by default
             latching = ET.SubElement(pv, "latching")
-            latching.text = 'false'
+            latching.text = "false"
 
             if data.force_pv is not None:
                 filter_pv = ET.SubElement(pv, "filter")
                 filter_pv.text = self._process_forcepv(data.force_pv)
-
 
             # add guidance
             if data.guidance:
@@ -539,8 +546,13 @@ class XMLBuilder:
         # TODO: sevr command and stat command automated actions
 
     def _add_inclusion(self, group, filename):
-        inclusion = ET.SubElement(self.groups[group], "xi:include", href=filename, xpointer="xpointer(/config/*",  attrib={"xmlns:xi": "http://www.w3.org/2001/XInclude"})
-
+        inclusion = ET.SubElement(
+            self.groups[group],
+            "xi:include",
+            href=filename,
+            xpointer="xpointer(/config/*",
+            attrib={"xmlns:xi": "http://www.w3.org/2001/XInclude"},
+        )
 
     def _process_forcepv(self, force_pv):
         text = force_pv.name
@@ -554,8 +566,7 @@ class XMLBuilder:
             text += f" != {force_pv.force_value}"
 
         return text
-               
-    
+
 
 def convert_alh_to_phoebus(config_name, input_filename, output_filename):
     parser = ALHFileParser(input_filename, config_name)
@@ -566,7 +577,10 @@ def convert_alh_to_phoebus(config_name, input_filename, output_filename):
 
     return True
 
+
 if __name__ == "__main__":
-    input_filename = "/Users/jgarra/sandbox/nalms-resources/examples/alh_files/temp_li23.alhConfig"
+    input_filename = (
+        "/Users/jgarra/sandbox/nalms-resources/examples/alh_files/temp_li23.alhConfig"
+    )
     output_filename = "/Users/jgarra/sandbox/nalms-resources/examples/test.xml"
     convert_alh_to_phoebus("test1", input_filename, output_filename)
