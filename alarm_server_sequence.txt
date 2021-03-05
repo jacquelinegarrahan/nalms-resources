@@ -1,0 +1,98 @@
+@startuml
+actor user as "User"
+participant main
+participant asi as "AlarmStateInitializer Thread"
+participant sm as "ServerModel Thread"
+participant spvu as "SeverityPVUpdater Thread"
+collections alarmpvs as "AlarmServerPV Threads"
+collections pvpool as "PVPool (Concurrent Hash Map)"
+collections iocs as "IOCs"
+collections kafka as "Kafka Cluster"
+
+
+
+user -> main: Launch alarm server
+activate main
+activate kafka
+activate iocs
+
+main -> asi: Initialize alarm state
+
+activate asi
+asi -> kafka: Poll configuration and state
+kafka -> asi: Return configuration and state
+asi -> main: Return alarm state
+destroy asi
+
+main --> sm: Start model
+activate sm
+sm -> kafka: Connect Kafka consumer
+kafka -> sm: Connection successful
+sm -> kafka: Connect Kafka producer
+kafka -> sm: Connection successful
+sm --> spvu: Initialize severity PV handler
+activate spvu
+
+sm -> alarmpvs: Create AlarmServerPV Threads
+activate alarmpvs
+
+spvu -> iocs: Connect to EPICS PV threads
+
+loop
+    iocs -> spvu: Get PV values
+    spvu -> pvpool: Write severity values
+end
+
+loop
+    alarmpvs -> pvpool: Get severity values
+    activate pvpool
+    pvpool -> alarmpvs: Return severity
+    deactivate pvpool
+    alarmpvs --> kafka: Send alarm state updates
+    alarmpvs --> alarmpvs: Update hierarchy
+end
+
+loop
+    sm -> kafka: Poll
+    kafka -> sm: Return messages
+    sm -> sm: Check for and store \n command topic updates
+    sm -> sm: Check for and store \n configuration topic updates
+    alt Configuration changed
+        alt New PV
+            sm -> alarmpvs: Start corresponding AlarmPV thread
+
+        else PV removed
+            sm --> alarmpvs: Terminate AlarmPV thread
+        end
+    end
+    
+    sm -> sm: Check if idle
+end
+
+user -> main : Get pv state
+main -> sm : Get node/pv
+sm -> alarmpvs: Get PV alarm state
+alarmpvs -> sm: Return PV alarm state
+sm -> main : Return PV state
+main -> user: Print alarm state
+
+user -> main: Shutdown alarm server
+main --> sm: Signal shutdown
+destroy main
+sm --> spvu: Signal shutdown
+destroy spvu
+sm --> alarmpvs
+destroy sm
+destroy alarmpvs
+
+
+deactivate sm
+deactivate main
+deactivate kafka
+deactivate iocs
+
+
+
+
+
+@enduml

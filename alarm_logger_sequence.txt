@@ -1,0 +1,70 @@
+@startuml
+actor user as "User"
+participant main
+collections als as "Alarm State Logging Service \n (Kafka Streams threadpool)"
+collections acons as "Alarm Configuration Logging Service \n (Kafka Streams threadpool)"
+collections acs as "Alarm Command Logging Service \n (Kafka Streams threadpool)"
+participant kafka as "Kafka Cluster"
+participant elasticsearch as "Elasticsearch"
+
+
+user -> main: Start logging service
+activate main
+
+main --> als: Instantiate state logging service
+activate als
+main --> acons: Instantiate configuration logging service
+activate acons
+main --> acs: Instantiate command logging service
+activate acs
+
+
+user -> main : Request help
+activate main #DarkSalmon
+main -> user : Return help message
+deactivate main
+
+loop
+    als -> kafka : poll 
+
+    kafka-> als : Alarm state message
+    activate als #DarkSalmon
+    als -> als : Parse message
+
+    als -> elasticsearch : Commit 
+    deactivate als
+    elasticsearch -> als : Response o.k.
+
+    acons -> kafka : poll 
+    kafka -> acons: Alarm configuration message
+    activate acons #DarkSalmon
+    acons -> acons: Parse message
+
+    acons -> elasticsearch : Commit 
+    deactivate acons
+    elasticsearch -> acons : Response o.k.
+
+    acs -> kafka : poll 
+    kafka -> acs: Alarm command message
+    activate acs #DarkSalmon
+    acs -> acs: Parse message
+
+    acs -> elasticsearch : Commit 
+    deactivate acs
+    elasticsearch -> acs : Response o.k.
+end
+
+user -> main : Request shutdown
+activate main #DarkSalmon
+
+
+main --> als : Signal shutdown
+destroy als
+main --> acons : Signal shutdown
+destroy acons
+main --> acs : Signal shutdown
+destroy acs
+destroy main
+
+
+@enduml
