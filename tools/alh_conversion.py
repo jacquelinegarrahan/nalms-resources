@@ -1,7 +1,5 @@
 """
-AUTHOR: JACQUELINE GARRAHAN
-PYTHON: 3.x
-
+Author: Jacqueline Garrahan
 
 This script is intended for the conversion of alhConfig files to phoebus alarm server xml configuration files.
 
@@ -16,25 +14,39 @@ from treelib import Node, Tree
 
 # TODO: ADD HANDLING OF SEVRCOMMAND, STATCOMMAND, BEEPSEVERITY, BEEPSEVR
 # TODO: Fix path handling for include files
-
+# TODO: Fix heartbeatpv handling
+# TODO: Add SEVRPV handling
+# TODO: Add message for items unable to converts
 
 class HeartbeatPV:
+    """
+    Representaiont of Heartbeat PV
+    """
     def __init__(self, name, value=None, seconds=None):
         self.name = name
 
 
 class AckPV:
+    """
+    Representation of Acknowledge PV
+    """
     def __init__(self, name, ack_value):
         self.name = name
         self.ack_value = ack_value
 
 
 class SevrPV:
+    """
+    Representation of Severity PV
+    """
     def __init__(self, name):
         self.name = name
 
 
 class ForcePV:
+    """
+    Representation of ForcePV entry
+    """
     def __init__(self, force_mask, force_value, reset_value):
         self.force_mask = force_mask
         self.force_value = force_value
@@ -49,6 +61,9 @@ class ForcePV:
 
 
 class AlarmNode:
+    """
+    Representation of an alarm tree node
+    """
     def __init__(self, group_name, filename=None):
         self.name = group_name
         self.alias = ""
@@ -72,6 +87,9 @@ class AlarmNode:
 
 
 class AlarmLeaf:
+    """
+    Representation of an alarm tree leaf
+    """
     node_children = None
 
     def __init__(self, channel_name, filename=None):
@@ -91,6 +109,9 @@ class AlarmLeaf:
 
 
 class InclusionMarker:
+    """
+    Marker for indicating file inclusions
+    """
     node_children = None
 
     def __init__(self, name, filename):
@@ -126,7 +147,6 @@ class ALHFileParser:
         self._parent_path = None
 
     def parse_file(self):
-
         self._line_iterator = fileinput.input(self.filepath)
 
         next_line = next(self._line_iterator, None)
@@ -374,7 +394,6 @@ class ALHFileParser:
         ack_pv_name = split_line[1]
         ack_value = split_line[2]
 
-        # WRONG, CORRECT THE TARGET
         items[self._current_target] = AckPV(ack_pv_name, ack_value)
 
     # FIX
@@ -576,11 +595,3 @@ def convert_alh_to_phoebus(config_name, input_filename, output_filename):
     tree_builder.save_configuration(output_filename)
 
     return True
-
-
-if __name__ == "__main__":
-    input_filename = (
-        "/Users/jgarra/sandbox/nalms-resources/examples/alh_files/temp_li23.alhConfig"
-    )
-    output_filename = "/Users/jgarra/sandbox/nalms-resources/examples/test.xml"
-    convert_alh_to_phoebus("test1", input_filename, output_filename)
