@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import os
 import copy
 import fileinput
+import sys
 from treelib import Node, Tree
 
 
@@ -17,6 +18,8 @@ from treelib import Node, Tree
 # TODO: Fix heartbeatpv handling
 # TODO: Add SEVRPV handling
 # TODO: Add message for items unable to converts
+# TODO: Better command line tooling
+# TODO: Check against schema document
 
 class HeartbeatPV:
     """
@@ -264,12 +267,12 @@ class ALHFileParser:
             node_path = f"{self.current_node}/{parent}/{channel_name}"
 
         # update item and assign parent
-        self.items[node_path] = AlarmLeaf(channel_name, filename=filename)
+        self.items[node_path] = AlarmLeaf(channel_name, filename=self.filename)
         self.items[node_path].parent = parent_path
 
         # store parent node if it isn't in items
-        if parent_path not in items:
-            self.items[parent_path] = AlarmNode(parent, filename=filename)
+        if parent_path not in self.items:
+            self.items[parent_path] = AlarmNode(parent, filename=self.filename)
             self.items[self._current_node].add_child(parent_path)
 
         # an optional mask is sometimes added as the fourth element
@@ -595,3 +598,16 @@ def convert_alh_to_phoebus(config_name, input_filename, output_filename):
     tree_builder.save_configuration(output_filename)
 
     return True
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "-h":
+        print("Usage: python alh_conversion.py config_name input_filename output_filename")
+    
+    elif len(sys.argv) != 4:
+        print("Incorrect number of arguments.")
+        print("Usage: python alh_conversion.py config_name input_filename output_filename")
+
+    else:
+        convert_alh_to_phoebus(sys.argv[1], sys.argv[2], sys.argv[3])
+
