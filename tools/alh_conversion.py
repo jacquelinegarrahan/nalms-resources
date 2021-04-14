@@ -579,7 +579,7 @@ class XMLBuilder:
     def _process_forcepv(self, force_pv):
         text = force_pv.name
         if force_pv.is_calc:
-            formatting = force_pv.calc_expressions.pop("A")
+            formatting = force_pv.main_calc
 
             for key, value in force_pv.calc_expressions.items():
                 formatting.replace(key, value)
