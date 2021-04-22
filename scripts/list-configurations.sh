@@ -15,7 +15,7 @@ if [[ ! -d "$KAFKA_TOP" ]]; then
   exit 0
 fi
 
-if [[ ! -d "$ZOOKEEPER_HOST" ]]; then
+if [[ -z "$ZOOKEEPER_HOST" ]]; then
   echo "ZOOKEEPER_HOST is not set."
   exit 0
 fi
