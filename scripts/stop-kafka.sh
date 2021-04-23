@@ -5,13 +5,8 @@
 # Copyright @2021 SLAC National Accelerator Laboratory
 
 if [[ -d $KAFKA_TOP ]]; then 
-
-    if _; then
-        $KAFKA_TOP/bin/kafka-server-stop.sh
-
-    else
-        echo "No running Kafka brokers found."
-    fi
+    $KAFKA_TOP/bin/kafka-server-stop.sh
+    $KAFKA_TOP/bin/zookeeper-server-stop.sh
 else
     echo "Kafka path not found. Has environment been set? KAFKA_TOP: ${KAFKA_TOP}"
 fi
