@@ -16,6 +16,12 @@ if [[ ! -d "$KAFKA_TOP" ]]; then
   exit 0
 fi
 
+if [[ -z "$KAFKA_BOOTSTRAP" ]]; then
+  echo "KAFKA_BOOTSTRAP server is not set."
+  exit 0
+fi
+
+
 config=$1
 
 if [[ -d $KAFKA_TOP ]]; then 
