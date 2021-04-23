@@ -1,8 +1,11 @@
 #!/bin/sh
 #
 # Create tmux sessions and launch alarm services
+# Author: Jacqueline Garrahan
 #
 # Copyright @2021 SLAC National Accelerator Laboratory
+#
+
 
 if [ "$1" == "-h" ]; then
   echo "Usage: create-window.sh config_name"
