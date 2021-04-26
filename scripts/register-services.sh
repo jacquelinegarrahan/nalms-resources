@@ -28,5 +28,5 @@ fi
 
 sudo /bin/systemctl daemon-reload
 sudo /bin/systemctl enable ${ELASTICSEARCH_PATH}/bin/elasticsearch.service
-sudo /bin/systemctl enable ${NALMS_PATH}/services/kafka.service
-sudo /bin/systemctl enable ${NALMS_PATH}/services/zookeeper.service
+sudo /bin/systemctl enable ${NALMS_TOP}/current/services/kafka.service
+sudo /bin/systemctl enable ${NALMS_TOP}/current/services/zookeeper.service
